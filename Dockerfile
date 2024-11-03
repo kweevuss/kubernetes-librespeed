@@ -25,14 +25,6 @@ RUN sed -i 's/PASSWORD/speedtest/' /var/www/html/results/telemetry_settings.php
 RUN sed -i 's/DB_HOSTNAME/mysql/' /var/www/html/results/telemetry_settings.php
 RUN sed -i 's/DB_NAME/kptspeedtest/' /var/www/html/results/telemetry_settings.php
 
-
-
-#add use database to mysql template: move these two to the db setup
-#RUN sed -i '1s/^/use kptspeedtest;\n/' /var/www/html/results/telemetry_mysql.sql
-
-#Setup database tables:
-#RUN mysql -u speedtest -pspeedtest -h 192.168.101.230 -e "source /var/www/html/results/telemetry_mysql.sql"
-
 #Remove extra files:
 RUN  rm /var/www/html/Dockerfile* /var/www/html/LICENSE /var/www/html/*.md
 RUN rm -rf /var/www/html/docker/ /var/www/html/docker/examples/
@@ -40,9 +32,6 @@ RUN rm -rf /var/www/html/docker/ /var/www/html/docker/examples/
 #Mod permissions
 RUN chown -R www-data /var/www/html/
 RUN chgrp -R www-data /var/www/html/
-#RUN apt-get install -y apache2 curl php 
-#RUN apt-get update && apt-get install -y apache2 curl php php-image-text php-gd
-#RUN systemctl start apache2
 
 EXPOSE 80
 CMD ["apachectl", "-D", "FOREGROUND"]
