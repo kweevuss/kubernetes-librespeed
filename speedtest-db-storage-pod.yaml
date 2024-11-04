@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: speedtest-db-pvc
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "freenas-nfs-csi"
+spec:
+  storageClassName: freenas-nfs-csi
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: speedtest-db
+  labels:
+    app: speedtest-db
+spec:
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: speedtest-db-pvc
+  - name: mysql-initdb
+    configMap:
+      name: mysql-initdb-config
+  containers:
+  - name: speedtest-db
+    image: docker.io/mysql:latest
+    ports:
+    - containerPort: 3306
+    env:
+    - name: MYSQL_DATABASE
+      value: "kptspeedtest"
+    - name: MYSQL_USER
+      value: "speedtest"
+    - name: MYSQL_PASSWORD
+      value: "speedtest"
+    - name: MYSQL_ROOT_PASSWORD
+      value: "speedtest"
+    volumeMounts:
+      - mountPath: /var/lib/mysql
+        name: data
+      - name: mysql-initdb
+        mountPath: /docker-entrypoint-initdb.d
+      
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-initdb-config
+data:
+  init.sql: |
+    use kptspeedtest;
+    SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+    SET AUTOCOMMIT = 0;
+    START TRANSACTION;
+    SET time_zone = "+00:00";
+
+
+    /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+    /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+    /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+    /*!40101 SET NAMES utf8mb4 */;
+
+    --
+    -- Database: `speedtest_telemetry`
+    --
+
+    -- --------------------------------------------------------
+
+    --
+    -- Table structure for table `speedtest_users`
+    --
+
+    CREATE TABLE `speedtest_users` (
+      `id` int(11) NOT NULL,
+      `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      `ip` text NOT NULL,
+      `ispinfo` text,
+      `extra` text,
+      `ua` text NOT NULL,
+      `lang` text NOT NULL,
+      `dl` text,
+      `ul` text,
+      `ping` text,
+      `jitter` text,
+      `log` longtext
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+    --
+    -- Indexes for dumped tables
+    --
+
+    --
+    -- Indexes for table `speedtest_users`
+    --
+    ALTER TABLE `speedtest_users`
+      ADD PRIMARY KEY (`id`);
+
+    --
+    -- AUTO_INCREMENT for dumped tables
+    --
+
+    --
+    -- AUTO_INCREMENT for table `speedtest_users`
+    --
+    ALTER TABLE `speedtest_users`
+      MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;COMMIT;
+
+    /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+    /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+    /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+---
+#Test
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: speedtest-db
